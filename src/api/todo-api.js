@@ -12,6 +12,12 @@ export const getTodos = async () => {
     return data;
 };
 
+//하나의 투두를 가지고옴
+export const getSingleTodo = async (id) => {
+    const { data } = await todoClient.get(`/${id}`);
+    return data;
+};
+
 export const createTodo = async (todo) => {
     await todoClient.post('/', todo);
 };
