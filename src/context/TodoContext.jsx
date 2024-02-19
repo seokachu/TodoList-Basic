@@ -1,110 +1,65 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  updateDoc,
-} from "firebase/firestore";
-import { createContext, useEffect, useState } from "react";
-import { db } from "../firebase/firebaseConfig";
+import { createContext, useEffect, useState } from 'react';
+import { createTodo, deleteTodo, getTodos, updateTodo } from '../api/todo-api';
 
-export const TODOS_COLLECTION = "todos";
+export const TODOS_COLLECTION = 'todos';
 
 export const TodoContext = createContext();
 
 const TodoProvider = ({ children }) => {
-  const [todos, setTodos] = useState([]);
+    const [todos, setTodos] = useState([]);
 
-  useEffect(() => {
-    const fetchTodos = async () => {
-      const querySnapshot = await getDocs(collection(db, TODOS_COLLECTION));
+    useEffect(() => {
+        const fetchTodos = async () => {
+            const data = await getTodos();
+            setTodos(data);
+        };
 
-      const nextTodos = querySnapshot.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id,
-      }));
+        fetchTodos();
+    }, []);
 
-      setTodos(nextTodos);
-
-      // forEach를 사용한 방법
-      // const nextTodos = []
-
-      // querySnapshot.forEach((doc) => {
-      //   console.log(`${doc.id} => ${doc.data()}`);
-      //   const data = doc.data();
-
-      //   nextTodos.push({
-      //     id: doc.id,
-      //     ...data,
-      //   });
-      // });
+    const onSubmitTodo = async (nextTodo) => {
+        await createTodo(nextTodo);
+        setTodos((prevTodos) => [...prevTodos, nextTodo]);
     };
 
-    fetchTodos();
-  }, []);
+    const onDeleteTodoItem = async (id) => {
+        await deleteTodo(id);
 
-  const onSubmitTodo = async (nextTodo) => {
-    const ref = await addDoc(collection(db, TODOS_COLLECTION), nextTodo);
-
-    const nextTodoWithServerId = {
-      ...nextTodo,
-      id: ref.id,
+        setTodos((prevTodos) => prevTodos.filter((todo) => todo.id !== id));
     };
 
-    // optimistic update
-    setTodos((prevTodos) => [nextTodoWithServerId, ...prevTodos]);
-  };
+    const onToggleTodoItem = async (id) => {
+        await updateTodo(id, {
+            isDone: !todos.find((todoItem) => todoItem.id === id).isDone,
+        });
 
-  const onDeleteTodoItem = async (id) => {
-    await deleteDoc(doc(db, TODOS_COLLECTION, id));
+        setTodos((prevTodos) =>
+            prevTodos.map((todoItem) => {
+                if (todoItem.id === id) {
+                    return {
+                        ...todoItem,
+                        isDone: !todoItem.isDone,
+                    };
+                }
 
-    setTodos((prevTodos) => prevTodos.filter((todo) => todo.id !== id));
-  };
+                return todoItem;
+            })
+        );
+    };
 
-  const onToggleTodoItem = async (id) => {
-    // 서버의 아이디를 가져와서 업데이트
-    const todoRef = doc(db, TODOS_COLLECTION, id);
-    const docSnap = await getDoc(todoRef);
-
-    // 또는 클라이언트의 데이터를 가져와서 업데이트
-    // const todo = todos.find((todoItem) => todoItem.id === id);
-    // await updateDoc(doc(db, TODOS_COLLECTION, id), {
-    //   isDone: !todo.isDone,
-    // });
-
-    await updateDoc(todoRef, {
-      isDone: !docSnap.data().isDone,
-    });
-
-    setTodos((prevTodos) =>
-      prevTodos.map((todoItem) => {
-        if (todoItem.id === id) {
-          return {
-            ...todoItem,
-            isDone: !todoItem.isDone,
-          };
-        }
-
-        return todoItem;
-      })
+    return (
+        <TodoContext.Provider
+            value={{
+                todos,
+                setTodos,
+                onSubmitTodo,
+                onDeleteTodoItem,
+                onToggleTodoItem,
+            }}
+        >
+            {children}
+        </TodoContext.Provider>
     );
-  };
-
-  return (
-    <TodoContext.Provider
-      value={{
-        todos,
-        setTodos,
-        onSubmitTodo,
-        onDeleteTodoItem,
-        onToggleTodoItem,
-      }}
-    >
-      {children}
-    </TodoContext.Provider>
-  );
 };
 
 export default TodoProvider;
