@@ -1,41 +1,37 @@
-import { useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import TodoItem from '../components/todo/TodoItem';
-import { TodoContext } from '../context/TodoContext';
-import { getSingleTodo } from '../api/todo-api';
+import { useDispatch } from 'react-redux';
+import { deleteTodo, getSingleTodo } from '../api/todo-api';
+import { useQuery } from '@tanstack/react-query';
 
 const Detail = () => {
     const { todoId } = useParams();
-    const [todo, setTodo] = useState(null);
-    const { onDeleteTodoItem, onToggleTodoItem } = useContext(TodoContext);
+    const dispatch = useDispatch();
 
-    useEffect(() => {
-        const fetchTodo = async () => {
-            const data = await getSingleTodo(todoId);
-            setTodo(data);
-        };
-
-        fetchTodo();
-    }, [todoId]);
+    const {
+        data: todo,
+        isLoading,
+        error,
+    } = useQuery({
+        queryKey: ['todo', todoId],
+        queryFn: () => getSingleTodo(todoId),
+    });
 
     const handleDeleteTodoItem = async (id) => {
-        await onDeleteTodoItem(id);
-
-        setTodo(null);
+        dispatch(deleteTodo(id));
+        // setTodo(null);
     };
 
     const handleToggleTodoItem = async (id) => {
-        // 1. 서버에 업데이트 2. 로컬 context api 상태에 업데이트
-        await onToggleTodoItem(id);
-
-        setTodo((prevTodo) => ({
-            ...prevTodo,
-            isDone: !prevTodo.isDone,
-        }));
+        dispatch(handleToggleTodoItem(id));
     };
 
-    if (!todo) {
+    if (isLoading) {
         return <div>로딩 중...</div>;
+    }
+
+    if (error) {
+        console.log('error:>>', error);
     }
 
     return (
