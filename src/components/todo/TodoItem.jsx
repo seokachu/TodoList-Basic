@@ -1,40 +1,57 @@
-import { Link, useNavigate } from "react-router-dom";
-import { TodoCardItem } from "../../style/TodoStyle";
+import { Link, useNavigate } from 'react-router-dom';
+import { TodoCardItem } from '../../style/TodoStyle';
+import { deleteTodo, updateTodo } from '../../api/todo-api';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 
-/* eslint-disable react/prop-types */
-const TodoItem = ({ todo, onDeleteTodoItem, onToggleTodoItem }) => {
-  const navigate = useNavigate();
-  const { id, title, content, isDone, deadline } = todo;
+const TodoItem = ({ todo }) => {
+    const queryClient = useQueryClient();
+    const navigate = useNavigate();
 
-  const formattedDeadline = new Date(deadline).toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "long",
-  });
+    const { mutate: deleteMutate } = useMutation({
+        mutationFn: (id) => deleteTodo(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries('todos');
+            navigate('/');
+        },
+    });
 
-  const handleDeleteTodoItem = () => {
-    onDeleteTodoItem(id);
-    navigate("/");
-  };
+    const { mutate: updateMutate } = useMutation({
+        mutationFn: ({ id, todo }) => updateTodo(id, todo),
+        onSuccess: () => {
+            queryClient.invalidateQueries('todos');
+        },
+    });
 
-  return (
-    <TodoCardItem $isDone={isDone}>
-      <article>
-        <Link to={`/${id}`}>
-          <h3>{title}</h3>
-          <p>{content}</p>
-          <time>{formattedDeadline}</time>
-        </Link>
-        <div>
-          <button onClick={handleDeleteTodoItem}>삭제</button>
-          <button onClick={() => onToggleTodoItem(id)}>
-            {isDone ? "취소" : "완료"}
-          </button>
-        </div>
-      </article>
-    </TodoCardItem>
-  );
+    const { id, title, content, isDone, deadline } = todo;
+
+    const formattedDeadline = new Date(deadline).toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long',
+    });
+
+    return (
+        <TodoCardItem $isDone={isDone}>
+            <article>
+                <Link to={`/${id}`}>
+                    <h3>{title}</h3>
+                    <p>{content}</p>
+                    <time>{formattedDeadline}</time>
+                </Link>
+                <div>
+                    <button onClick={() => deleteMutate(id)}>삭제</button>
+                    <button
+                        onClick={() =>
+                            updateMutate({ id, todo: { isDone: !isDone } })
+                        }
+                    >
+                        {isDone ? '취소' : '완료'}
+                    </button>
+                </div>
+            </article>
+        </TodoCardItem>
+    );
 };
 
 export default TodoItem;
