@@ -12,6 +12,19 @@ const TodoController = () => {
     } = useQuery({
         queryKey: ['todos'],
         queryFn: getTodos,
+        // select: (todos) => {
+        //     const sortedTodos = [...todos];
+        //     if (sortOrder === 'asc') {
+        //         sortedTodos.sort(
+        //             (a, b) => new Date(a.deadline) - new Date(b.deadline)
+        //         );
+        //         return;
+        //     }
+        //     sortedTodos.sort(
+        //         (a, b) => new Date(b.deadline) - new Date(a.deadline)
+        //     );
+        //     return sortedTodos;
+        // },
     });
     const [sortOrder, setSortOrder] = useState('asc');
 
